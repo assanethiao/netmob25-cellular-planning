@@ -1,0 +1,77 @@
+# @package _global_
+defaults:
+  - override /hydra/sweeper: basic
+  - override /hydra/launcher: joblib
+
+accelerator: gpu
+
+hydra:
+  launcher:
+    n_jobs: 2
+  sweeper:
+    params:
+      devices: "[2]","[3]"
+      model.hidden_dim: 128,256,512
+      model.latent_dim: 16,32,64
+      training.batch_size: 16,32,64,128
+      loss.params.beta: 0.5,1.0,2.0
+      loss.type: distance_aware_vae
+
+# Run all in parallel (each on different GPU)
+
+python scripts/train.py \
+  model.hidden_dim=128,256,512 \
+  model.latent_dim=16,32,64 \
+  training.batch_size=16,32,64 \
+  training.loss.type=distance_aware_vae \
+  training.loss.params.beta=0.5,1.0,2.0,5.0 \
+  devices=[5] \
+  --multirun
+
+  
+
+
+# Attention Model Sweep 2: Heavy Attention Architecture  
+# Test more complex attention with distance-aware loss
+python scripts/train.py \
+  model=vae_attention \
+  model.hidden_dim=256,512 \
+  model.latent_dim=32,64 \
+  model.num_attention_heads=8,16 \
+  model.num_attention_layers=2,3 \
+  model.dropout=0.1,0.2 \
+  training.batch_size=16,32 \
+  training.learning_rate=1e-4,5e-4 \
+  loss.type=distance_aware_vae \
+  devices=[7] \
+  --multirun
+
+
+python scripts/train.py model.hidden_dim=128,256 model.latent_dim=16,64 training.batch_size=128 devices=[2] --multirun
+
+python scripts/train.py model=vae_cnn model.base_channels=64 model.latent_dim=64 training.batch_size=256  devices=[2] --multirun
+
+python scripts/train.py \
+  model=vae_attention \
+  training.loss.params.beta=0.1 \
+  model.hidden_dim=32,128 \
+  model.latent_dim=16,64 \
+  model.num_attention_heads=4,8 \
+  model.num_attention_layers=1,2 \
+  training.batch_size=64 \
+  devices=[6] \
+  --multirun
+
+
+
+
+  python scripts/train.py \
+  model=vae_dense \
+  model.hidden_dim=128,256,512 \
+  model.latent_dim=16,32,64,128 \
+  model.num_hidden_layers=2,3,4 \
+  model.dropout=0.1,0.2,0.3 \
+  training.batch_size=512 \
+  training.loss.params.beta=0.5,1.0,2.0,5.0 \
+  devices=[2] \
+  --multirun
