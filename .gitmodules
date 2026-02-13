@@ -1,0 +1,3 @@
+[submodule "module_netmob25"]
+	path = module_netmob25
+	url = https://gitlab.lip6.fr/trnguyen/netmob25.git
