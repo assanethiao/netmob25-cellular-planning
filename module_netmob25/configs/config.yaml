@@ -1,0 +1,19 @@
+defaults:
+  - data: netmob25
+  - model: vae_lstm
+  - training: default
+  - export: cpp
+  - _self_
+
+accelerator: gpu
+devices: [1] 
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+
+seed: 42
+device: cuda

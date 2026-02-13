@@ -1,0 +1,27 @@
+batch_size: 32
+epochs: 1500
+learning_rate: 0.001
+val_split: 0.1
+gradient_clip: 1.0
+early_stopping_patience: 50
+early_stopping_monitor: val_loss
+lr_scheduler_patience: 30
+lr_scheduler_factor: 0.5
+lr_scheduler_monitor: val_loss
+best_metric_monitor: val_loss
+# Optional: path to pretrained checkpoint to initialize weights
+pretrained_checkpoint: null
+# Loss configuration
+loss:
+  type: simple_vae
+  params:
+    beta:
+      type: cyclical
+      params:
+        min_beta: 0.001
+        max_beta: 0.5
+        cycle_length: 20
+        mode: cosine
+    free_bits:
+      enabled: false
+      lambda_free_bits: 2.0
