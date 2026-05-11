@@ -1,0 +1,8 @@
+build/
+ns-3.*
+*.o
+*.so
+*.bin
+*.txt
+*.xml
+model.pt
