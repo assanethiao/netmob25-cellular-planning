@@ -1,11 +1,11 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Simulation LTE - Paris Centre (zone NetMob25)
- * FIXED: lambda remplace par fonction globale pour compatibilite ns-3
+ * Simulation LTE - Paris (zone NetMob25)
+ * 
  *
- * Zone : ~1 km² autour de 48.8527°N / 2.3507°E
- *        (point de référence du code du prof : refLat=48.852737, refLon=2.350699)
- *        Secteur Panthéon / Place d'Italie / Gare d'Austerlitz
+ * Zone : ~1 km² autour de 48.8918°N / 2.417°E
+ *        
+ *        Secteur La Défense
  *
  * 25 UE : 5 WALKING, 15 TRANSPORT, 5 DRIVING
  * 3 eNB en triangle, bande LTE 20 MHz (100 RB)
@@ -23,9 +23,9 @@
  *   - paris-flowmon.xml   : FlowMonitor (débit, latence, perte)
  *
  * Placement des 3 eNB (coordonnées relatives en mètres) :
- *   eNB 0 : (500, 850) → Nord  : Bd Auguste Blanqui / Glacière
- *   eNB 1 : (150, 150) → SW    : Place d'Italie
- *   eNB 2 : (850, 150) → SE    : Gare d'Austerlitz
+ *   eNB 0 : (550, 800) 
+ *   eNB 1 : (200, 200)     
+ *   eNB 2 : (900, 200) 
  */
 
 #include "ns3/core-module.h"
@@ -84,7 +84,7 @@ PrintUePositions (void)
 
 // Zone Paris centre cohérente avec le modèle NetMob25
 // refLat=48.852737 / refLon=2.350699 → ~1 km x 1 km
-static const double AREA_X = 1000.0;  // mètres
+static const double AREA_X = 1100.0;  // mètres
 static const double AREA_Y = 1000.0;  // mètres
 
 // UE par mode (TransportMode du modèle NetMob25)
@@ -133,8 +133,8 @@ main (int argc, char *argv[])
   LogComponentEnable ("PacketSink",            LOG_LEVEL_INFO);
 
   std::cout << "================================================" << std::endl;
-  std::cout << "  Simulation LTE - Paris Centre (NetMob25)"       << std::endl;
-  std::cout << "  ref: 48.852737 N / 2.350699 E"                  << std::endl;
+  std::cout << "  Simulation LTE - Paris (NetMob25)"       << std::endl;
+  std::cout << ""                                                 << std::endl;
   std::cout << "================================================" << std::endl;
   std::cout << "  Zone          : " << AREA_X << "m x " << AREA_Y << "m" << std::endl;
   std::cout << "  Total UE      : " << totalUe    << std::endl;
@@ -171,7 +171,7 @@ Config::SetDefault ("ns3::OkumuraHataPropagationLossModel::CitySize",
                     EnumValue (OkumuraHataPropagationLossModel::LargeCity));
 */
 
-  lteHelper->SetAttribute ("PathlossModel", StringValue ("ns3::FriisPropagationLossModel"));  
+  lteHelper->SetAttribute ("PathlossModel", StringValue ("ns3::FriisPropagationLossModel"));
 // ── Nœuds ─────────────────────────────────────────────────────
   NodeContainer enbNodes;
   enbNodes.Create (N_ENB);
@@ -194,49 +194,26 @@ Config::SetDefault ("ns3::OkumuraHataPropagationLossModel::CitySize",
 
   // ── Mobilité eNB (positions fixes) ────────────────────────────
   //
-  //  Les coordonnées sont relatives au point de référence du prof :
-  //  refLat=48.852737 / refLon=2.350699 (Panthéon / 5e arr.)
-  //
-  //  eNB 0 (Nord)  : (500, 850) → Bd Auguste Blanqui / Glacière
-  //  eNB 1 (SW)    : (150, 150) → Place d'Italie
-  //  eNB 2 (SE)    : (850, 150) → Gare d'Austerlitz
-  //
-  //  Triangle équilatéral ~700m de côté → portée 350m en zone dense → overlap OK
+  //  Les coordonnées sont relatives au point de référence 
   //
   MobilityHelper enbMobility;
   Ptr<ListPositionAllocator> enbPos = CreateObject<ListPositionAllocator> ();
-  enbPos->Add (Vector (500.0, 850.0, 30.0)); // eNB 0 — Glacière / Blanqui
-  enbPos->Add (Vector (150.0, 150.0, 30.0)); // eNB 1 — Place d'Italie
-  enbPos->Add (Vector (850.0, 150.0, 30.0)); // eNB 2 — Austerlitz
+  enbPos->Add (Vector (550.0, 800.0, 30.0)); // eNB 0 
+  enbPos->Add (Vector (200.0, 200.0, 30.0)); // eNB 1 
+  enbPos->Add (Vector (900.0, 200.0, 30.0)); // eNB 2 
   enbMobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   enbMobility.SetPositionAllocator (enbPos);
   enbMobility.Install (enbNodes);
 
-  std::cout << "\nPlacement eNB :" << std::endl;
-  std::cout << "  eNB 0 : (500, 850) m  [Bd Blanqui / Glaciere]" << std::endl;
-  std::cout << "  eNB 1 : (150, 150) m  [Place d'Italie]"        << std::endl;
-  std::cout << "  eNB 2 : (850, 150) m  [Gare d'Austerlitz]"     << std::endl;
 
   // ── Mobilité UE via NetMob25 ───────────────────────────────────
-  //
-  // TransportMode doit correspondre EXACTEMENT aux valeurs du code du prof :
-  //   WALKING   → mode_idx = 0
-  //   CYCLING   → mode_idx = 1
-  //   DRIVING   → mode_idx = 2
-  //   TRANSPORT → mode_idx = 3
-  //
-  // TripLength : nombre de points générés par le modèle VAE
-  //   WALKING   : 200 pts × 1s = ~200s de trajectoire → on prend les 60 premiers
-  //   TRANSPORT : 500 pts (vitesse plus élevée, plus de distance)
-  //   DRIVING   : 400 pts
-  //
 
   // --- WALKING ---
   MobilityHelper mobWalking;
   mobWalking.SetMobilityModel (
     "ns3::Netmob25MobilityModel",
     "StartTime",      TimeValue    (Seconds (0.0)),
-    "UpdateInterval", TimeValue    (Seconds (1.0)),
+    "UpdateInterval", TimeValue    (Seconds (2.0)),
     "ModelPath",      StringValue  ("model.pt"),
     "TransportMode",  StringValue  ("WALKING"),
     "TripLength",     UintegerValue (200));
@@ -247,18 +224,18 @@ Config::SetDefault ("ns3::OkumuraHataPropagationLossModel::CitySize",
   mobTransport.SetMobilityModel (
     "ns3::Netmob25MobilityModel",
     "StartTime",      TimeValue    (Seconds (0.0)),
-    "UpdateInterval", TimeValue    (Seconds (1.0)),
+    "UpdateInterval", TimeValue    (Seconds (2.0)),
     "ModelPath",      StringValue  ("model.pt"),
     "TransportMode",  StringValue  ("TRANSPORT"),
     "TripLength",     UintegerValue (500));
   mobTransport.Install (ueTransport);
 
-  // --- DRIVING (voiture) ---
+  // --- CAR (voiture) ---
   MobilityHelper mobDriving;
   mobDriving.SetMobilityModel (
     "ns3::Netmob25MobilityModel",
     "StartTime",      TimeValue    (Seconds (0.0)),
-    "UpdateInterval", TimeValue    (Seconds (1.0)),
+    "UpdateInterval", TimeValue    (Seconds (2.0)),
     "ModelPath",      StringValue  ("model.pt"),
     "TransportMode",  StringValue  ("DRIVING"),
     "TripLength",     UintegerValue (400));
